@@ -262,7 +262,7 @@ function renderThread() {
     if (m.body) html += esc(m.body);
     (m.media_urls||[]).forEach(function(u){ html += '<img class="msg-photo" src="'+esc(u)+'" alt="photo">'; });
     html += '</div>';
-    html += '<div class="msg-meta">'+(failed?'Failed to send &middot; ':'')+time+'</div>';
+    html += '<div class="msg-meta">'+(failed?'Failed: '+esc(m.error||'unknown error')+' &middot; ':'')+time+'</div>';
     html += '</div>';
     return html;
   }).join('');
