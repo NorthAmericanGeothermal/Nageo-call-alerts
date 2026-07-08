@@ -38,6 +38,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-del{font-size:11px;padding:4px 10px;border:0.5px solid #fca5a5;border-radius:6px;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit;}
 .add-staff-btn{width:100%;padding:10px;background:#fff;border:0.5px dashed #ccc;border-radius:12px;color:#888;cursor:pointer;font-size:13px;font-family:inherit;}
 .add-staff-btn:hover{background:#f4f4f0;color:#1a1a1a;}
+.section-label{font-size:12px;font-weight:600;color:#888;margin:1.75rem 0 0.6rem;text-transform:uppercase;letter-spacing:0.03em;}
+.group-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;}
+.group-row{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;padding:14px 16px;}
+.group-row-top{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+.group-name-input{flex:1;}
+.group-members{display:flex;flex-wrap:wrap;gap:6px;}
+.group-member-chip{font-size:12px;padding:4px 10px;border:0.5px solid #ddd;border-radius:20px;background:#f9f9f7;cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:#555;font-family:inherit;}
+.group-member-chip input{margin:0;}
+.group-member-chip.checked{background:#eff6ff;border-color:#2563eb;color:#2563eb;}
+.group-members-empty{font-size:12px;color:#aaa;}
+.msg-roster-label{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:0.03em;padding:4px 4px 0;}
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
 /* Messages */
@@ -131,6 +142,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="view-staff" style="display:none">
       <div class="staff-list" id="staff-list"></div>
       <button class="add-staff-btn" onclick="addStaffRow()">+ Add person</button>
+
+      <div class="section-label">Groups</div>
+      <div class="group-list" id="group-list"></div>
+      <button class="add-staff-btn" onclick="addGroupRow()">+ Add group</button>
     </div>
   </div>
 </div>
@@ -144,9 +159,11 @@ var STORAGE_BUCKET = 'call-media';
 
 var currentUser = null, users = [];
 var staff = [];
+var groups = [];
 var currentView = 'messages';
 
 var currentThreadStaff = null;
+var currentThreadGroup = null;
 var threadMessages = [];
 var messagePollTimer = null;
 var pendingPhotoFile = null;
@@ -185,6 +202,7 @@ function showApp() {
   document.getElementById('app').style.display='block';
   document.getElementById('topbar-name').textContent = currentUser.name;
   loadStaff();
+  loadGroups();
   setView('messages');
 }
 function setView(v) {
@@ -216,22 +234,51 @@ async function loadStaff() {
     var data = await callFn({action:'staff_list'});
     staff = data.staff || [];
     renderStaff();
+    renderGroups();
     if (currentView === 'messages') renderMessagesRoster();
   } catch(e) { showToast('Error loading team: '+e.message); }
 }
+async function loadGroups() {
+  try {
+    var data = await callFn({action:'groups_list'});
+    groups = data.groups || [];
+    renderGroups();
+    if (currentView === 'messages') renderMessagesRoster();
+  } catch(e) { showToast('Error loading groups: '+e.message); }
+}
 /* ── Messages ────────────────────────────────────────────────────── */
+// Roster shows saved groups (broadcast lists) above individual people —
+// picking a group opens a compose-and-broadcast view instead of a live
+// two-way thread, since replies to a group text aren't really "to the
+// group" over plain SMS (see openGroupThread).
 function renderMessagesRoster() {
   var el = document.getElementById('msg-roster-list');
-  var active = staff.filter(function(s){ return s.active !== false && s.id; });
-  if (!active.length) { el.innerHTML = '<div class="empty">Add people under Team first.</div>'; return; }
-  el.innerHTML = active.map(function(s){
-    var isActive = s.id === currentThreadStaff;
-    return '<div class="msg-roster-item'+(isActive?' active':'')+'" onclick="openThread(\''+s.id+'\')">'
-      + esc(s.name) + '<div class="msg-roster-phone">'+esc(s.phone)+'</div></div>';
-  }).join('');
+  var activeStaff = staff.filter(function(s){ return s.active !== false && s.id; });
+  var activeGroups = groups.filter(function(g){ return g.active !== false && g.id; });
+  if (!activeStaff.length && !activeGroups.length) { el.innerHTML = '<div class="empty">Add people under Team first.</div>'; return; }
+  var html = '';
+  if (activeGroups.length) {
+    html += '<div class="msg-roster-label">Groups</div>';
+    html += activeGroups.map(function(g){
+      var isActive = g.id === currentThreadGroup;
+      var count = (g.member_ids||[]).length;
+      return '<div class="msg-roster-item'+(isActive?' active':'')+'" onclick="openGroupThread(\''+g.id+'\')">&#128101; '
+        + esc(g.name) + '<div class="msg-roster-phone">'+count+' '+(count===1?'person':'people')+'</div></div>';
+    }).join('');
+  }
+  if (activeStaff.length) {
+    if (activeGroups.length) html += '<div class="msg-roster-label">People</div>';
+    html += activeStaff.map(function(s){
+      var isActive = s.id === currentThreadStaff;
+      return '<div class="msg-roster-item'+(isActive?' active':'')+'" onclick="openThread(\''+s.id+'\')">'
+        + esc(s.name) + '<div class="msg-roster-phone">'+esc(s.phone)+'</div></div>';
+    }).join('');
+  }
+  el.innerHTML = html;
 }
 function openThread(staffId) {
   currentThreadStaff = staffId;
+  currentThreadGroup = null;
   var s = staff.find(function(x){ return x.id===staffId; });
   document.getElementById('msg-thread-hd').textContent = s ? 'Texting ' + s.name : 'Conversation';
   renderMessagesRoster();
@@ -239,10 +286,29 @@ function openThread(staffId) {
   if (messagePollTimer) clearInterval(messagePollTimer);
   messagePollTimer = setInterval(loadMessages, 8000);
 }
+// A group "thread" is really a broadcast log: what you've sent to this list
+// and how many of them it reached. Replies always land in each person's own
+// 1:1 thread (tagged with which group the text came from), not here — SMS
+// has no real "everyone sees everyone's replies" group mode when messages
+// go out as separate texts from a business number.
+function openGroupThread(groupId) {
+  currentThreadGroup = groupId;
+  currentThreadStaff = null;
+  var g = groups.find(function(x){ return x.id===groupId; });
+  var count = g ? (g.member_ids||[]).length : 0;
+  document.getElementById('msg-thread-hd').textContent = g ? 'Texting group: ' + g.name + ' (' + count + (count===1?' person':' people') + ')' : 'Group';
+  renderMessagesRoster();
+  loadMessages();
+  if (messagePollTimer) clearInterval(messagePollTimer);
+  messagePollTimer = setInterval(loadMessages, 8000);
+}
 async function loadMessages() {
-  if (!currentThreadStaff) return;
+  if (!currentThreadStaff && !currentThreadGroup) return;
   try {
-    var data = await callFn({action:'messages_list', staff_id:currentThreadStaff});
+    var payload = currentThreadGroup
+      ? {action:'messages_list', group_id:currentThreadGroup}
+      : {action:'messages_list', staff_id:currentThreadStaff};
+    var data = await callFn(payload);
     threadMessages = data.messages || [];
     renderThread();
   } catch(e) { showToast('Error loading messages: '+e.message); }
@@ -253,16 +319,36 @@ function renderThread() {
   var wasNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 60;
   el.innerHTML = threadMessages.map(function(m){
     var isOut = m.direction === 'outbound';
-    var failed = m.status === 'failed';
+    var isGroupMsg = !!m.group_id;
+    // When a group broadcast shows up inside one person's own 1:1 thread,
+    // tag it with which group it went out as, and report THIS person's own
+    // delivery result rather than the whole broadcast's (the group's own
+    // thread view shows the aggregate instead).
+    var inPersonThread = isGroupMsg && !!currentThreadStaff;
+    var mine = null;
+    if (inPersonThread && Array.isArray(m.recipients)) {
+      mine = m.recipients.find(function(r){ return String(r.staff_id) === String(currentThreadStaff); });
+    }
+    var rowFailed = mine ? mine.status !== 'sent' : m.status === 'failed';
     var time = new Date(m.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
     var senderLabel = isOut ? (m.sent_by || 'Someone') : (m.staff_id ? nameForStaff(m.staff_id) : (m.from_phone || 'Reply'));
-    var html = '<div class="msg-row '+(isOut?'out':'in')+(failed?' failed':'')+'">';
-    html += '<div class="msg-sender">'+esc(senderLabel)+(isOut?' (you)':'')+'</div>';
+    var html = '<div class="msg-row '+(isOut?'out':'in')+(rowFailed?' failed':'')+'">';
+    html += '<div class="msg-sender">'+esc(senderLabel)+(isOut?' (you)':'')+(inPersonThread?' &rarr; '+esc(nameForGroup(m.group_id)):'')+'</div>';
     html += '<div class="msg-bubble">';
     if (m.body) html += esc(m.body);
     (m.media_urls||[]).forEach(function(u){ html += '<img class="msg-photo" src="'+esc(u)+'" alt="photo">'; });
     html += '</div>';
-    html += '<div class="msg-meta">'+(failed?'Failed: '+esc(m.error||'unknown error')+' &middot; ':'')+time+'</div>';
+    var metaBits = [];
+    if (mine) {
+      metaBits.push(mine.status === 'sent' ? 'Delivered' : 'Failed: ' + esc(mine.error || 'unknown error'));
+    } else if (isGroupMsg && Array.isArray(m.recipients) && m.recipients.length) {
+      var okCount = m.recipients.filter(function(r){ return r.status === 'sent'; }).length;
+      metaBits.push(okCount + '/' + m.recipients.length + ' delivered');
+    } else if (m.status === 'failed') {
+      metaBits.push('Failed: ' + esc(m.error || 'unknown error'));
+    }
+    metaBits.push(time);
+    html += '<div class="msg-meta">'+metaBits.join(' &middot; ')+'</div>';
     html += '</div>';
     return html;
   }).join('');
@@ -271,6 +357,10 @@ function renderThread() {
 function nameForStaff(id) {
   var s = staff.find(function(x){ return x.id===id; });
   return s ? s.name : 'Them';
+}
+function nameForGroup(id) {
+  var g = groups.find(function(x){ return x.id===id; });
+  return g ? g.name : 'Group';
 }
 function onPhotoChosen(input) {
   if (!input.files || !input.files[0]) return;
@@ -355,7 +445,7 @@ function compressImageForMms(file) {
   });
 }
 async function sendComposedMessage() {
-  if (!currentThreadStaff) { showToast('Pick someone to text first.'); return; }
+  if (!currentThreadStaff && !currentThreadGroup) { showToast('Pick someone or a group to text first.'); return; }
   var textEl = document.getElementById('msg-compose-text');
   var text = textEl.value.trim();
   if (!text && !pendingPhotoFile) { showToast('Type a message or attach a photo.'); return; }
@@ -367,13 +457,17 @@ async function sendComposedMessage() {
       var toUpload = await compressImageForMms(pendingPhotoFile);
       var isGif = (toUpload.type || pendingPhotoFile.type) === 'image/gif';
       var safeName = 'photo_' + Date.now() + '.' + (isGif ? 'gif' : 'jpg');
-      var path = currentThreadStaff + '/' + Date.now() + '_' + safeName;
+      var folder = currentThreadGroup ? 'group_' + currentThreadGroup : currentThreadStaff;
+      var path = folder + '/' + Date.now() + '_' + safeName;
       var up = await sb.storage.from(STORAGE_BUCKET).upload(path, toUpload, { contentType: toUpload.type || 'image/jpeg' });
       if (up.error) throw new Error('Photo upload failed: ' + up.error.message);
       var pub = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       mediaUrls.push(pub.data.publicUrl);
     }
-    var data = await callFn({action:'send_message', staff_id:currentThreadStaff, body:text, media_urls:mediaUrls, sent_by:currentUser.name});
+    var payload = currentThreadGroup
+      ? {action:'send_group_message', group_id:currentThreadGroup, body:text, media_urls:mediaUrls, sent_by:currentUser.name}
+      : {action:'send_message', staff_id:currentThreadStaff, body:text, media_urls:mediaUrls, sent_by:currentUser.name};
+    var data = await callFn(payload);
     textEl.value = '';
     removePendingPhoto();
     await loadMessages();
@@ -417,6 +511,7 @@ async function saveStaffRow(s) {
     s._key = key; // keep the same client key across the id being filled in
     delete s._new;
     renderStaff();
+    renderGroups(); // group member chips show staff names, keep them in sync
     if (currentView === 'messages') renderMessagesRoster();
   } catch(e) { showToast('Error saving: '+e.message); }
 }
@@ -435,6 +530,7 @@ async function deleteStaff(key) {
     await callFn({action:'staff_delete', id:s.id});
     staff = staff.filter(function(x){ return x._key!==key; });
     renderStaff();
+    renderGroups();
     if (currentThreadStaff === s.id) { currentThreadStaff = null; document.getElementById('msg-thread-hd').textContent = 'Pick someone to text'; }
     if (currentView === 'messages') renderMessagesRoster();
     showToast('Removed.');
@@ -446,6 +542,86 @@ async function testAlert(key) {
   try {
     await callFn({action:'test_sms', phone:s.phone, message:'Test text from NAGeo Team Texting — routing to '+s.name+' works.'});
     showToast('Test text sent to '+s.name+'.');
+  } catch(e) { showToast('Error: '+e.message); }
+}
+/* ── Groups ──────────────────────────────────────────────────────── */
+// Same stable client-side _key pattern as staff rows (see ensureKey above) —
+// a brand-new unsaved group has id:null, so all DOM handlers key off _key
+// instead of the real id.
+var groupKeySeq = 0;
+function ensureGroupKey(g) { if (!g._key) g._key = 'gk' + (++groupKeySeq); return g._key; }
+function renderGroups() {
+  var el = document.getElementById('group-list');
+  if (!el) return; // Team tab not on screen yet — nothing to render into
+  if (!groups.length) { el.innerHTML = '<div class="empty">No groups yet. Add one to text several people at once.</div>'; return; }
+  el.innerHTML = groups.map(renderGroupRow).join('');
+}
+function renderGroupRow(g) {
+  var key = ensureGroupKey(g);
+  var memberIds = (g.member_ids||[]).map(String);
+  var activeStaff = staff.filter(function(s){ return s.id; });
+  var html = '<div class="group-row" data-key="'+key+'">';
+  html += '<div class="group-row-top">';
+  html += '<input class="staff-input group-name-input" placeholder="Group name (e.g. All Techs)" value="'+esc(g.name||'')+'" onchange="updateGroupField(\''+key+'\',\'name\',this.value)">';
+  html += '<button class="btn-del" onclick="deleteGroup(\''+key+'\')">Remove</button>';
+  html += '</div>';
+  html += '<div class="group-members">';
+  if (!activeStaff.length) {
+    html += '<span class="group-members-empty">Add people above first.</span>';
+  } else {
+    html += activeStaff.map(function(s){
+      var checked = memberIds.indexOf(String(s.id)) !== -1;
+      return '<label class="group-member-chip'+(checked?' checked':'')+'"><input type="checkbox" '+(checked?'checked':'')+' onchange="toggleGroupMember(\''+key+'\',\''+s.id+'\',this.checked)">'+esc(s.name)+'</label>';
+    }).join('');
+  }
+  html += '</div></div>';
+  return html;
+}
+function addGroupRow() {
+  groups.push({id:null, name:'', member_ids:[], active:true, _new:true});
+  renderGroups();
+}
+async function saveGroupRow(g) {
+  try {
+    var data = await callFn({action:'group_save', group:g});
+    var key = g._key;
+    Object.assign(g, data.group);
+    g._key = key;
+    delete g._new;
+    renderGroups();
+    if (currentView === 'messages') renderMessagesRoster();
+  } catch(e) { showToast('Error saving group: '+e.message); }
+}
+function updateGroupField(key, field, value) {
+  var g = groups.find(function(x){ return x._key===key; });
+  if (!g) return;
+  g[field] = value;
+  if (g.name) saveGroupRow(g);
+}
+// A brand-new group with no name yet can still have members checked — those
+// stay in local state until a name is typed, at which point the first save
+// carries the already-selected members along with it.
+function toggleGroupMember(key, staffId, checked) {
+  var g = groups.find(function(x){ return x._key===key; });
+  if (!g) return;
+  var ids = (g.member_ids||[]).map(String);
+  if (checked) { if (ids.indexOf(staffId)===-1) ids.push(staffId); }
+  else { ids = ids.filter(function(id){ return id!==staffId; }); }
+  g.member_ids = ids;
+  if (g.name) saveGroupRow(g); else renderGroups();
+}
+async function deleteGroup(key) {
+  var g = groups.find(function(x){ return x._key===key; });
+  if (!g) return;
+  if (!g.id) { groups = groups.filter(function(x){ return x._key!==key; }); renderGroups(); return; }
+  if (!confirm('Remove group "'+(g.name||'this group')+'"? Past broadcasts stay in history.')) return;
+  try {
+    await callFn({action:'group_delete', id:g.id});
+    groups = groups.filter(function(x){ return x._key!==key; });
+    renderGroups();
+    if (currentThreadGroup === g.id) { currentThreadGroup = null; document.getElementById('msg-thread-hd').textContent = 'Pick someone to text'; }
+    if (currentView === 'messages') renderMessagesRoster();
+    showToast('Group removed.');
   } catch(e) { showToast('Error: '+e.message); }
 }
 /* ── Helpers ─────────────────────────────────────────────────────── */
