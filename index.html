@@ -317,6 +317,43 @@ function removePendingPhoto() {
   document.getElementById('msg-photo-input').value = '';
   document.getElementById('msg-photo-preview').classList.remove('show');
 }
+// ClickSend caps MMS attachments at 250 kB — a full-res phone photo or
+// screenshot is almost always way over that and comes back as a generic
+// "Invalid input" error with no obvious cause. Shrink + re-encode as JPEG
+// client-side before upload so sends actually go through. Animated GIFs are
+// left alone (resizing would break the animation) — if a big GIF ever fails,
+// that's a real "too big" case, not this bug.
+function compressImageForMms(file) {
+  return new Promise(function(resolve, reject) {
+    if (file.type === 'image/gif') { resolve(file); return; }
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      var maxDim = 1400;
+      var quality = 0.85;
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      var TARGET_BYTES = 230 * 1024; // stay under ClickSend's 250 kB cap
+      function attempt() {
+        var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob) {
+          if (!blob) { reject(new Error('Could not process image')); return; }
+          var atFloor = maxDim <= 500 && quality <= 0.4;
+          if (blob.size <= TARGET_BYTES || atFloor) { resolve(blob); return; }
+          if (quality > 0.4) quality -= 0.15; else maxDim = Math.round(maxDim * 0.75);
+          attempt();
+        }, 'image/jpeg', quality);
+      }
+      attempt();
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Could not read image')); };
+    img.src = url;
+  });
+}
 async function sendComposedMessage() {
   if (!currentThreadStaff) { showToast('Pick someone to text first.'); return; }
   var textEl = document.getElementById('msg-compose-text');
@@ -327,10 +364,11 @@ async function sendComposedMessage() {
   var mediaUrls = [];
   try {
     if (pendingPhotoFile) {
-      var extGuess = (pendingPhotoFile.type && pendingPhotoFile.type.split('/')[1]) || 'jpg';
-      var safeName = (pendingPhotoFile.name || ('pasted-image.' + extGuess)).replace(/[^a-zA-Z0-9._-]/g,'_');
+      var toUpload = await compressImageForMms(pendingPhotoFile);
+      var isGif = (toUpload.type || pendingPhotoFile.type) === 'image/gif';
+      var safeName = 'photo_' + Date.now() + '.' + (isGif ? 'gif' : 'jpg');
       var path = currentThreadStaff + '/' + Date.now() + '_' + safeName;
-      var up = await sb.storage.from(STORAGE_BUCKET).upload(path, pendingPhotoFile);
+      var up = await sb.storage.from(STORAGE_BUCKET).upload(path, toUpload, { contentType: toUpload.type || 'image/jpeg' });
       if (up.error) throw new Error('Photo upload failed: ' + up.error.message);
       var pub = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       mediaUrls.push(pub.data.publicUrl);
