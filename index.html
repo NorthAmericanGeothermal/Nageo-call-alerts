@@ -156,7 +156,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="msg-compose">
             <button class="msg-photo-btn" onclick="document.getElementById('msg-photo-input').click()" title="Attach a photo">&#128247;</button>
             <input type="file" id="msg-photo-input" accept="image/*" style="display:none" onchange="onPhotoChosen(this)">
-            <textarea id="msg-compose-text" placeholder="Type a message..." rows="1"></textarea>
+            <textarea id="msg-compose-text" placeholder="Type a message... (you can paste a photo here too)" rows="1" onpaste="handleComposePaste(event)"></textarea>
             <button class="msg-send-btn" onclick="sendComposedMessage()">Send</button>
           </div>
         </div>
@@ -331,13 +331,37 @@ function renderThread() {
 }
 function onPhotoChosen(input) {
   if (!input.files || !input.files[0]) return;
-  pendingPhotoFile = input.files[0];
+  setPendingPhoto(input.files[0]);
+}
+// Shared by both the file picker and clipboard paste, so a pasted screenshot
+// gets the exact same preview + upload treatment as a chosen file.
+function setPendingPhoto(file) {
+  pendingPhotoFile = file;
   var reader = new FileReader();
   reader.onload = function(e) {
     document.getElementById('msg-photo-preview-img').src = e.target.result;
     document.getElementById('msg-photo-preview').classList.add('show');
   };
   reader.readAsDataURL(pendingPhotoFile);
+}
+// Pasted images from the clipboard (screenshots, copied photos) come through
+// as a clipboard item with no reliable filename, so this doesn't touch the
+// file input at all — it goes straight into pendingPhotoFile.
+function handleComposePaste(e) {
+  var cd = e.clipboardData || window.clipboardData;
+  if (!cd || !cd.items) return;
+  for (var i = 0; i < cd.items.length; i++) {
+    var item = cd.items[i];
+    if (item.type && item.type.indexOf('image') !== -1) {
+      var file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        setPendingPhoto(file);
+        showToast('Photo pasted — ready to send.');
+      }
+      break;
+    }
+  }
 }
 function removePendingPhoto() {
   pendingPhotoFile = null;
@@ -352,7 +376,9 @@ async function sendComposedMessage() {
   var mediaUrls = [];
   if (pendingPhotoFile) {
     try {
-      var path = currentThreadStaff + '/' + Date.now() + '_' + pendingPhotoFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      var extGuess = (pendingPhotoFile.type && pendingPhotoFile.type.split('/')[1]) || 'jpg';
+      var safeName = (pendingPhotoFile.name || ('pasted-image.' + extGuess)).replace(/[^a-zA-Z0-9._-]/g,'_');
+      var path = currentThreadStaff + '/' + Date.now() + '_' + safeName;
       var up = await sb.storage.from(STORAGE_BUCKET).upload(path, pendingPhotoFile);
       if (up.error) throw new Error(up.error.message);
       var pub = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
