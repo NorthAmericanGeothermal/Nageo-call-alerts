@@ -3,67 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NAGeo Call Alerts</title>
+<title>NAGeo Team Texting</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f4f0;color:#1a1a1a;min-height:100vh;}
 #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
 .login-card{background:#fff;border-radius:16px;border:0.5px solid #ddd;padding:2rem;width:340px;max-width:90vw;text-align:center;}
-.login-logo{font-size:22px;font-weight:600;margin-bottom:4px;}.login-logo span{color:#dc2626;}
+.login-logo{font-size:22px;font-weight:600;margin-bottom:4px;}.login-logo span{color:#2563eb;}
 .login-sub{font-size:13px;color:#888;margin-bottom:2rem;}
 .pin-input{width:100%;padding:10px 14px;border:0.5px solid #ddd;border-radius:8px;font-size:16px;text-align:center;letter-spacing:6px;background:#f9f9f7;margin-bottom:1rem;box-sizing:border-box;}
-.pin-input:focus{outline:none;border-color:#dc2626;}
-.login-btn{width:100%;padding:11px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;}
-.login-btn:hover{background:#b91c1c;}
+.pin-input:focus{outline:none;border-color:#2563eb;}
+.login-btn{width:100%;padding:11px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;}
+.login-btn:hover{background:#1d4ed8;}
 .login-error{font-size:12px;color:#dc2626;margin-top:8px;}
 #app{display:none;}
 .topbar{background:#fff;border-bottom:0.5px solid #e5e5e5;padding:0 1.5rem;display:flex;align-items:center;gap:1rem;height:52px;position:sticky;top:0;z-index:100;}
-.topbar-logo{font-size:15px;font-weight:600;flex:1;}.topbar-logo span{color:#dc2626;}
+.topbar-logo{font-size:15px;font-weight:600;flex:1;}.topbar-logo span{color:#2563eb;}
 .topbar-user{font-size:12px;color:#888;}.topbar-user strong{color:#1a1a1a;}
 .logout-btn{font-size:12px;padding:4px 10px;border:0.5px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#888;}
 .main{max-width:1100px;margin:0 auto;padding:1.5rem;}
-.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1.25rem;max-width:400px;}
-.stat{background:#fff;border-radius:10px;border:0.5px solid #e5e5e5;padding:12px 14px;}
-.stat-label{font-size:11px;color:#888;margin-bottom:4px;}
-.stat-value{font-size:22px;font-weight:600;}
 .view-toggle{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;}
 .vbtn{padding:6px 14px;font-size:13px;border-radius:8px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer;}
 .vbtn.active{background:#f4f4f0;color:#1a1a1a;font-weight:500;border-color:#bbb;}
-.filter-bar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
-.fbtn{padding:5px 12px;font-size:12px;border-radius:7px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer;}
-.fbtn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
-.calls{display:flex;flex-direction:column;gap:8px;}
-.call-card{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;overflow:hidden;}
-.call-card.unreviewed{border-left:3px solid #dc2626;}
-.call-hd{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;}
-.call-hd:hover{background:#fafaf8;}
-.call-name{font-size:14px;font-weight:600;flex-shrink:0;}
-.call-phone{font-size:12px;color:#888;white-space:nowrap;}
-.call-summary{flex:1;min-width:0;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600;white-space:nowrap;flex-shrink:0;}
-.badge-new{background:#dbeafe;color:#2563eb;}
-.call-time{font-size:11px;color:#aaa;white-space:nowrap;flex-shrink:0;}
-.chevron{font-size:12px;color:#bbb;transition:transform .15s;flex-shrink:0;}
-.chevron.open{transform:rotate(90deg);}
-.call-body{display:none;border-top:0.5px solid #f0f0f0;padding:14px 16px;}
-.call-body.open{display:block;}
-.detail-row{margin-bottom:10px;font-size:13px;}
-.detail-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
-.transcript-box{background:#f9f9f7;border:0.5px solid #eee;border-radius:8px;padding:10px 12px;font-size:12px;color:#555;max-height:180px;overflow-y:auto;white-space:pre-wrap;}
-.alerted-list{display:flex;flex-direction:column;gap:4px;}
-.alerted-item{font-size:12px;display:flex;gap:8px;align-items:center;}
-.alert-ok{color:#16a34a;}.alert-fail{color:#dc2626;}
-.action-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;}
-.action-row select{font-size:12px;padding:5px 8px;border:0.5px solid #ddd;border-radius:6px;font-family:inherit;}
-.btn-sm{font-size:12px;padding:5px 12px;border:0.5px solid #2563eb;border-radius:7px;background:#fff;color:#2563eb;cursor:pointer;font-family:inherit;}
-.btn-sm:hover{background:#eff6ff;}
-.btn-review{font-size:12px;padding:5px 12px;border:0.5px solid #16a34a;border-radius:7px;background:#fff;color:#16a34a;cursor:pointer;font-family:inherit;}
-.btn-review.done{background:#dcfce7;}
-.recording-link{font-size:12px;color:#2563eb;text-decoration:none;}
-.recording-link:hover{text-decoration:underline;}
 .empty{padding:2.5rem;text-align:center;color:#aaa;font-size:13px;}
-/* Staff view */
+/* Team view */
 .staff-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;}
 .staff-row{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
 .staff-input{font-size:13px;padding:6px 10px;border:0.5px solid #ddd;border-radius:7px;font-family:inherit;background:#f9f9f7;}
@@ -74,8 +38,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-del{font-size:11px;padding:4px 10px;border:0.5px solid #fca5a5;border-radius:6px;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit;}
 .add-staff-btn{width:100%;padding:10px;background:#fff;border:0.5px dashed #ccc;border-radius:12px;color:#888;cursor:pointer;font-size:13px;font-family:inherit;}
 .add-staff-btn:hover{background:#f4f4f0;color:#1a1a1a;}
-.webhook-box{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;padding:14px 16px;margin-bottom:1rem;font-size:12px;color:#555;}
-.webhook-box code{background:#f4f4f0;padding:2px 6px;border-radius:5px;font-size:11px;word-break:break-all;}
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
 /* Messages */
@@ -86,14 +48,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .msg-roster-item.active{border-color:#2563eb;background:#eff6ff;color:#2563eb;font-weight:500;}
 .msg-roster-phone{font-size:11px;color:#888;margin-top:1px;}
 .msg-roster-item.active .msg-roster-phone{color:#93c5fd;}
-.msg-thread-wrap{flex:1;display:flex;flex-direction:column;background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;overflow:hidden;min-height:460px;}
+.msg-thread-wrap{flex:1;display:flex;flex-direction:column;background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;overflow:hidden;min-height:520px;}
 .msg-thread-hd{padding:12px 16px;border-bottom:0.5px solid #f0f0f0;font-size:13px;font-weight:600;}
-.msg-thread{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;max-height:460px;}
-.msg-bubble{max-width:75%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.4;word-break:break-word;}
-.msg-out{align-self:flex-end;background:#2563eb;color:#fff;border-bottom-right-radius:3px;}
-.msg-in{align-self:flex-start;background:#f4f4f0;color:#1a1a1a;border-bottom-left-radius:3px;}
-.msg-meta{font-size:10px;opacity:0.75;margin-top:4px;}
-.msg-photo{max-width:100%;border-radius:8px;margin-top:6px;display:block;}
+.msg-thread{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;max-height:520px;}
+.msg-row{display:flex;flex-direction:column;max-width:78%;}
+.msg-row.out{align-self:flex-end;align-items:flex-end;}
+.msg-row.in{align-self:flex-start;align-items:flex-start;}
+.msg-sender{font-size:11px;font-weight:700;margin-bottom:3px;padding:0 4px;}
+.msg-row.out .msg-sender{color:#2563eb;}
+.msg-row.in .msg-sender{color:#555;}
+.msg-bubble{padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.4;word-break:break-word;}
+.msg-row.out .msg-bubble{background:#2563eb;color:#fff;border-bottom-right-radius:4px;}
+.msg-row.in .msg-bubble{background:#f4f4f0;color:#1a1a1a;border-bottom-left-radius:4px;}
+.msg-row.failed .msg-bubble{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.msg-meta{font-size:10px;color:#aaa;margin-top:3px;padding:0 4px;}
+.msg-photo{max-width:220px;border-radius:10px;margin-top:6px;display:block;}
 .msg-compose{border-top:0.5px solid #f0f0f0;padding:12px 16px;display:flex;gap:8px;align-items:flex-end;}
 .msg-compose textarea{flex:1;resize:none;font-family:inherit;font-size:13px;padding:8px 10px;border:0.5px solid #ddd;border-radius:8px;min-height:38px;max-height:100px;}
 .msg-compose textarea:focus{outline:none;border-color:#2563eb;}
@@ -101,24 +70,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .msg-photo-btn:hover{background:#f4f4f0;}
 .msg-send-btn{font-size:13px;padding:8px 16px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-family:inherit;font-weight:500;flex-shrink:0;}
 .msg-send-btn:hover{background:#1d4ed8;}
+.msg-send-btn:disabled{opacity:0.5;cursor:default;}
 .msg-photo-preview{display:none;align-items:center;gap:8px;font-size:11px;color:#555;padding:0 16px 8px;}
 .msg-photo-preview.show{display:flex;}
 .msg-photo-preview img{height:40px;border-radius:6px;}
 .msg-photo-remove{font-size:11px;padding:2px 8px;border:0.5px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#dc2626;}
 @media(max-width:700px){
-  .stats{grid-template-columns:1fr 1fr;max-width:none;}
-  .call-phone,.call-time{display:none;}
   .main{padding:1rem 0.75rem;}
   .msg-layout{flex-direction:column;}
   .msg-roster{width:100%;flex-direction:row;overflow-x:auto;}
   .msg-roster-item{flex-shrink:0;white-space:nowrap;}
+  .msg-thread-wrap{min-height:420px;}
+  .msg-thread{max-height:420px;}
 }
 </style>
 </head>
 <body>
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">NAGeo <span>Call Alerts</span></div>
+    <div class="login-logo">NAGeo <span>Team Texting</span></div>
     <div class="login-sub">Enter your PIN to continue</div>
     <input type="password" class="pin-input" id="pin-input" placeholder="PIN" maxlength="6" inputmode="numeric">
     <button class="login-btn" onclick="doLogin()">Sign in</button>
@@ -127,22 +97,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 <div id="app">
   <div class="topbar">
-    <div class="topbar-logo">NAGeo <span>Call Alerts</span></div>
+    <div class="topbar-logo">NAGeo <span>Team Texting</span></div>
     <div class="topbar-user">Signed in as <strong id="topbar-name"></strong></div>
     <button class="logout-btn" onclick="doLogout()">Sign out</button>
   </div>
   <div class="main">
-    <div class="stats">
-      <div class="stat"><div class="stat-label">Calls today</div><div class="stat-value" id="s-today">0</div></div>
-      <div class="stat"><div class="stat-label">Unreviewed</div><div class="stat-value" id="s-unreviewed" style="color:#dc2626">0</div></div>
-    </div>
     <div class="view-toggle">
-      <button class="vbtn" id="btn-messages" onclick="setView('messages')">&#128172; Messages</button>
-      <button class="vbtn active" id="btn-calls" onclick="setView('calls')">&#128222; Calls</button>
-      <button class="vbtn" id="btn-staff" onclick="setView('staff')">&#128101; Staff &amp; Routing</button>
+      <button class="vbtn active" id="btn-messages" onclick="setView('messages')">&#128172; Messages</button>
+      <button class="vbtn" id="btn-staff" onclick="setView('staff')">&#128101; Team</button>
     </div>
 
-    <div id="view-messages" style="display:none">
+    <div id="view-messages">
       <div class="msg-layout">
         <div class="msg-roster" id="msg-roster-list"></div>
         <div class="msg-thread-wrap">
@@ -156,27 +121,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div class="msg-compose">
             <button class="msg-photo-btn" onclick="document.getElementById('msg-photo-input').click()" title="Attach a photo">&#128247;</button>
             <input type="file" id="msg-photo-input" accept="image/*" style="display:none" onchange="onPhotoChosen(this)">
-            <textarea id="msg-compose-text" placeholder="Type a message... (you can paste a photo here too)" rows="1" onpaste="handleComposePaste(event)"></textarea>
-            <button class="msg-send-btn" onclick="sendComposedMessage()">Send</button>
+            <textarea id="msg-compose-text" placeholder="Type a message... (you can paste a photo here too)" rows="1" onpaste="handleComposePaste(event)" onkeydown="handleComposeKeydown(event)"></textarea>
+            <button class="msg-send-btn" id="msg-send-btn" onclick="sendComposedMessage()">Send</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div id="view-calls">
-      <div class="filter-bar">
-        <button class="fbtn active" data-f="all" onclick="setFilter('all')">All</button>
-        <button class="fbtn" data-f="unreviewed" onclick="setFilter('unreviewed')">Unreviewed</button>
-        <button class="btn-sm" style="margin-left:auto" onclick="loadCalls()">&#8635; Refresh</button>
-      </div>
-      <div class="calls" id="calls-list"><div class="empty">Loading calls&hellip;</div></div>
-    </div>
-
     <div id="view-staff" style="display:none">
-      <div class="webhook-box">
-        <strong>Webhook URL (Housecall Pro &rarr; My Apps &rarr; Webhooks app):</strong><br>
-        <code id="webhook-url-display">https://hpgwwegjsxyxovdattoc.supabase.co/functions/v1/swift-calls</code>
-      </div>
       <div class="staff-list" id="staff-list"></div>
       <button class="add-staff-btn" onclick="addStaffRow()">+ Add person</button>
     </div>
@@ -191,9 +143,8 @@ var EDGE_FN = SUPABASE_URL + '/functions/v1/swift-calls';
 var STORAGE_BUCKET = 'call-media';
 
 var currentUser = null, users = [];
-var calls = [], staff = [];
-var currentView = 'calls', currentFilter = 'all';
-var openCallIds = new Set();
+var staff = [];
+var currentView = 'messages';
 
 var currentThreadStaff = null;
 var threadMessages = [];
@@ -227,22 +178,20 @@ function doLogout() {
   localStorage.removeItem('nageo_calls_user');
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
+  if (messagePollTimer) { clearInterval(messagePollTimer); messagePollTimer = null; }
 }
 function showApp() {
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('topbar-name').textContent = currentUser.name;
-  loadCalls();
   loadStaff();
-  setInterval(loadCalls, 30000); // light auto-refresh so new calls show up without a manual click
+  setView('messages');
 }
 function setView(v) {
   currentView = v;
   document.getElementById('view-messages').style.display = v==='messages' ? 'block' : 'none';
-  document.getElementById('view-calls').style.display = v==='calls' ? 'block' : 'none';
   document.getElementById('view-staff').style.display = v==='staff' ? 'block' : 'none';
   document.getElementById('btn-messages').className = 'vbtn' + (v==='messages'?' active':'');
-  document.getElementById('btn-calls').className = 'vbtn' + (v==='calls'?' active':'');
   document.getElementById('btn-staff').className = 'vbtn' + (v==='staff'?' active':'');
   if (v === 'messages') {
     renderMessagesRoster();
@@ -251,11 +200,6 @@ function setView(v) {
     clearInterval(messagePollTimer);
     messagePollTimer = null;
   }
-}
-function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll('.fbtn').forEach(function(b){ b.className = 'fbtn' + (b.dataset.f===f?' active':''); });
-  renderCalls();
 }
 async function callFn(payload) {
   var res = await fetch(EDGE_FN, {
@@ -267,27 +211,19 @@ async function callFn(payload) {
   if (data.error) throw new Error(data.error);
   return data;
 }
-async function loadCalls() {
-  try {
-    var data = await callFn({action:'list', limit:300});
-    calls = data.calls || [];
-    updateStats();
-    renderCalls();
-  } catch(e) { showToast('Error loading calls: '+e.message); }
-}
 async function loadStaff() {
   try {
     var data = await callFn({action:'staff_list'});
     staff = data.staff || [];
     renderStaff();
     if (currentView === 'messages') renderMessagesRoster();
-  } catch(e) { showToast('Error loading staff: '+e.message); }
+  } catch(e) { showToast('Error loading team: '+e.message); }
 }
 /* ── Messages ────────────────────────────────────────────────────── */
 function renderMessagesRoster() {
   var el = document.getElementById('msg-roster-list');
   var active = staff.filter(function(s){ return s.active !== false && s.id; });
-  if (!active.length) { el.innerHTML = '<div class="empty">Add people in Staff &amp; Routing first.</div>'; return; }
+  if (!active.length) { el.innerHTML = '<div class="empty">Add people under Team first.</div>'; return; }
   el.innerHTML = active.map(function(s){
     var isActive = s.id === currentThreadStaff;
     return '<div class="msg-roster-item'+(isActive?' active':'')+'" onclick="openThread(\''+s.id+'\')">'
@@ -314,20 +250,27 @@ async function loadMessages() {
 function renderThread() {
   var el = document.getElementById('msg-thread');
   if (!threadMessages.length) { el.innerHTML = '<div class="empty">No messages yet — say hi.</div>'; return; }
-  var wasNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 40;
+  var wasNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 60;
   el.innerHTML = threadMessages.map(function(m){
     var isOut = m.direction === 'outbound';
+    var failed = m.status === 'failed';
     var time = new Date(m.created_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
-    var meta = isOut ? (m.sent_by ? 'Sent by '+esc(m.sent_by) : 'Sent') : 'Reply';
-    if (m.status === 'failed') meta += ' — failed to send';
-    var html = '<div class="msg-bubble '+(isOut?'msg-out':'msg-in')+'">';
+    var senderLabel = isOut ? (m.sent_by || 'Someone') : (m.staff_id ? nameForStaff(m.staff_id) : (m.from_phone || 'Reply'));
+    var html = '<div class="msg-row '+(isOut?'out':'in')+(failed?' failed':'')+'">';
+    html += '<div class="msg-sender">'+esc(senderLabel)+(isOut?' (you)':'')+'</div>';
+    html += '<div class="msg-bubble">';
     if (m.body) html += esc(m.body);
     (m.media_urls||[]).forEach(function(u){ html += '<img class="msg-photo" src="'+esc(u)+'" alt="photo">'; });
-    html += '<div class="msg-meta">'+meta+' &middot; '+time+'</div>';
+    html += '</div>';
+    html += '<div class="msg-meta">'+(failed?'Failed to send &middot; ':'')+time+'</div>';
     html += '</div>';
     return html;
   }).join('');
   if (wasNearBottom) el.scrollTop = el.scrollHeight;
+}
+function nameForStaff(id) {
+  var s = staff.find(function(x){ return x.id===id; });
+  return s ? s.name : 'Them';
 }
 function onPhotoChosen(input) {
   if (!input.files || !input.files[0]) return;
@@ -345,8 +288,8 @@ function setPendingPhoto(file) {
   reader.readAsDataURL(pendingPhotoFile);
 }
 // Pasted images from the clipboard (screenshots, copied photos) come through
-// as a clipboard item with no reliable filename, so this doesn't touch the
-// file input at all — it goes straight into pendingPhotoFile.
+// as a clipboard item with no reliable filename, so this goes straight into
+// pendingPhotoFile rather than the file input.
 function handleComposePaste(e) {
   var cd = e.clipboardData || window.clipboardData;
   if (!cd || !cd.items) return;
@@ -363,6 +306,12 @@ function handleComposePaste(e) {
     }
   }
 }
+function handleComposeKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendComposedMessage();
+  }
+}
 function removePendingPhoto() {
   pendingPhotoFile = null;
   document.getElementById('msg-photo-input').value = '';
@@ -373,118 +322,32 @@ async function sendComposedMessage() {
   var textEl = document.getElementById('msg-compose-text');
   var text = textEl.value.trim();
   if (!text && !pendingPhotoFile) { showToast('Type a message or attach a photo.'); return; }
+  var btn = document.getElementById('msg-send-btn');
+  btn.disabled = true;
   var mediaUrls = [];
-  if (pendingPhotoFile) {
-    try {
+  try {
+    if (pendingPhotoFile) {
       var extGuess = (pendingPhotoFile.type && pendingPhotoFile.type.split('/')[1]) || 'jpg';
       var safeName = (pendingPhotoFile.name || ('pasted-image.' + extGuess)).replace(/[^a-zA-Z0-9._-]/g,'_');
       var path = currentThreadStaff + '/' + Date.now() + '_' + safeName;
       var up = await sb.storage.from(STORAGE_BUCKET).upload(path, pendingPhotoFile);
-      if (up.error) throw new Error(up.error.message);
+      if (up.error) throw new Error('Photo upload failed: ' + up.error.message);
       var pub = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       mediaUrls.push(pub.data.publicUrl);
-    } catch(e) { showToast('Photo upload failed: '+e.message); return; }
-  }
-  try {
+    }
     var data = await callFn({action:'send_message', staff_id:currentThreadStaff, body:text, media_urls:mediaUrls, sent_by:currentUser.name});
     textEl.value = '';
     removePendingPhoto();
     await loadMessages();
-    if (!data.ok) showToast('Send failed — check ClickSend status.');
+    if (data.warning) showToast(data.warning);
+    else if (!data.ok) showToast('Send failed — check ClickSend status and account credit.');
   } catch(e) { showToast('Error: '+e.message); }
+  btn.disabled = false;
 }
-function updateStats() {
-  var today = new Date().toDateString();
-  var todays = calls.filter(function(c){ return new Date(c.call_time).toDateString()===today; });
-  document.getElementById('s-today').textContent = todays.length;
-  document.getElementById('s-unreviewed').textContent = calls.filter(function(c){ return !c.reviewed; }).length;
-}
-function renderCalls() {
-  var el = document.getElementById('calls-list');
-  var list = calls.filter(function(c){
-    if (currentFilter==='all') return true;
-    return !c.reviewed;
-  });
-  if (!list.length) { el.innerHTML = '<div class="empty">No calls to show.</div>'; return; }
-  el.innerHTML = list.map(renderCallCard).join('');
-}
-function renderCallCard(c) {
-  var isOpen = openCallIds.has(c.id);
-  var time = new Date(c.call_time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
-  var html = '<div class="call-card'+(c.reviewed?'':' unreviewed')+'" id="call-'+c.id+'">';
-  html += '<div class="call-hd" onclick="toggleCall(\''+c.id+'\')">';
-  html += '<span class="call-name">'+esc(c.customer_name||'Unknown')+'</span>';
-  html += '<span class="call-phone">'+esc(c.customer_phone||'')+'</span>';
-  if (!c.reviewed) html += '<span class="badge badge-new">NEW</span>';
-  html += '<span class="call-summary">'+esc(c.summary||'')+'</span>';
-  html += '<span class="call-time">'+time+'</span>';
-  html += '<span class="chevron'+(isOpen?' open':'')+'">&#9658;</span>';
-  html += '</div>';
-  html += '<div class="call-body'+(isOpen?' open':'')+'">';
-  if (c.customer_address) html += '<div class="detail-row"><div class="detail-label">Address</div>'+esc(c.customer_address)+'</div>';
-  if (c.summary) html += '<div class="detail-row"><div class="detail-label">Summary</div>'+esc(c.summary)+'</div>';
-  if (c.transcript) html += '<div class="detail-row"><div class="detail-label">Transcript</div><div class="transcript-box">'+esc(c.transcript)+'</div></div>';
-  if (c.recording_url) html += '<div class="detail-row"><div class="detail-label">Recording</div><a class="recording-link" href="'+esc(c.recording_url)+'" target="_blank">&#9654; Listen</a></div>';
-  var alerted = c.alerted_staff || [];
-  html += '<div class="detail-row"><div class="detail-label">Sent to</div>';
-  if (!alerted.length) { html += '<span style="font-size:12px;color:#aaa">Nobody has been texted about this call yet.</span>'; }
-  else {
-    // newest first, so the most recent send is easy to spot
-    var sorted = alerted.slice().sort(function(a,b){ return new Date(b.sent_at)-new Date(a.sent_at); });
-    html += '<div class="alerted-list">' + sorted.map(function(a){
-      var sentTime = a.sent_at ? new Date(a.sent_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) : '';
-      var who = 'sent by ' + esc(a.sent_by||'someone');
-      return '<div class="alerted-item"><span class="'+(a.status==='sent'?'alert-ok':'alert-fail')+'">'+(a.status==='sent'?'&#10003;':'&#10007;')+'</span>'
-        + esc(a.name)+' ('+esc(a.phone)+') &mdash; '+who+(sentTime?' &mdash; '+sentTime:'')+(a.error?' — '+esc(a.error):'')+'</div>';
-    }).join('') + '</div>';
-  }
-  html += '</div>';
-  html += '<div class="action-row">';
-  html += '<button class="btn-review'+(c.reviewed?' done':'')+'" onclick="toggleReviewed(\''+c.id+'\','+(!c.reviewed)+')">'+(c.reviewed?'&#10003; Reviewed':'Mark reviewed')+'</button>';
-  html += '</div>';
-  html += '<div class="action-row">';
-  html += '<select id="send-select-'+c.id+'">';
-  if (!staff.length) { html += '<option value="">No staff added yet</option>'; }
-  else {
-    staff.filter(function(s){ return s.active !== false && s.id; }).forEach(function(s){
-      html += '<option value="'+s.id+'">'+esc(s.name)+' — '+esc(s.phone)+'</option>';
-    });
-  }
-  html += '</select>';
-  html += '<button class="btn-sm" style="border-color:#16a34a;color:#16a34a" onclick="manualSend(\''+c.id+'\')">&#9993; Send this call to them</button>';
-  html += '</div>';
-  html += '</div></div>';
-  return html;
-}
-function toggleCall(id) {
-  if (openCallIds.has(id)) openCallIds.delete(id); else openCallIds.add(id);
-  renderCalls();
-}
-async function toggleReviewed(id, reviewed) {
-  try {
-    await callFn({action:'mark_reviewed', id:id, reviewed:reviewed, reviewed_by:currentUser.name});
-    var c = calls.find(function(x){ return x.id===id; });
-    if (c) { c.reviewed = reviewed; }
-    updateStats(); renderCalls();
-  } catch(e) { showToast('Error: '+e.message); }
-}
-async function manualSend(id) {
-  var sel = document.getElementById('send-select-'+id);
-  var staffId = sel.value;
-  if (!staffId) { showToast('Add someone in Staff & Routing first.'); return; }
-  var picked = staff.find(function(s){ return s.id===staffId; });
-  try {
-    var data = await callFn({action:'manual_send', id:id, staff_id:staffId, sent_by:currentUser.name});
-    var c = calls.find(function(x){ return x.id===id; });
-    if (c) c.alerted_staff = data.alerted_staff;
-    renderCalls();
-    showToast(data.ok ? ('Sent to '+(picked?picked.name:'them')+' — from '+currentUser.name+'.') : 'Send failed: '+(data.entry&&data.entry.error||'unknown error'));
-  } catch(e) { showToast('Error: '+e.message); }
-}
-/* ── Staff & routing ─────────────────────────────────────────────── */
+/* ── Team ────────────────────────────────────────────────────────── */
 function renderStaff() {
   var el = document.getElementById('staff-list');
-  if (!staff.length) { el.innerHTML = '<div class="empty">No staff added yet. Add people below so calls have someone to alert.</div>'; return; }
+  if (!staff.length) { el.innerHTML = '<div class="empty">No one added yet. Add people below.</div>'; return; }
   el.innerHTML = staff.map(renderStaffRow).join('');
 }
 // Every staff row gets a stable client-side _key (independent of the DB id,
@@ -516,6 +379,7 @@ async function saveStaffRow(s) {
     s._key = key; // keep the same client key across the id being filled in
     delete s._new;
     renderStaff();
+    if (currentView === 'messages') renderMessagesRoster();
   } catch(e) { showToast('Error saving: '+e.message); }
 }
 function updateStaffField(key, field, value) {
@@ -528,11 +392,13 @@ async function deleteStaff(key) {
   var s = staff.find(function(x){ return x._key===key; });
   if (!s) return;
   if (!s.id) { staff = staff.filter(function(x){ return x._key!==key; }); renderStaff(); return; }
-  if (!confirm('Remove this person from call alert routing?')) return;
+  if (!confirm('Remove '+(s.name||'this person')+'? Their message history stays, but they won’t show up to text anymore.')) return;
   try {
     await callFn({action:'staff_delete', id:s.id});
     staff = staff.filter(function(x){ return x._key!==key; });
     renderStaff();
+    if (currentThreadStaff === s.id) { currentThreadStaff = null; document.getElementById('msg-thread-hd').textContent = 'Pick someone to text'; }
+    if (currentView === 'messages') renderMessagesRoster();
     showToast('Removed.');
   } catch(e) { showToast('Error: '+e.message); }
 }
@@ -540,13 +406,13 @@ async function testAlert(key) {
   var s = staff.find(function(x){ return x._key===key; });
   if (!s || !s.phone) { showToast('Add a phone number first.'); return; }
   try {
-    await callFn({action:'test_sms', phone:s.phone, message:'Test alert from NAGeo Call Alerts — routing to '+s.name+' works.'});
+    await callFn({action:'test_sms', phone:s.phone, message:'Test text from NAGeo Team Texting — routing to '+s.name+' works.'});
     showToast('Test text sent to '+s.name+'.');
   } catch(e) { showToast('Error: '+e.message); }
 }
 /* ── Helpers ─────────────────────────────────────────────────────── */
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },3500); }
+function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },4500); }
 init();
 </script>
 </body>
