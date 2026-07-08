@@ -23,7 +23,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .topbar-user{font-size:12px;color:#888;}.topbar-user strong{color:#1a1a1a;}
 .logout-btn{font-size:12px;padding:4px 10px;border:0.5px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#888;}
 .main{max-width:1100px;margin:0 auto;padding:1.5rem;}
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem;}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1.25rem;max-width:400px;}
 .stat{background:#fff;border-radius:10px;border:0.5px solid #e5e5e5;padding:12px 14px;}
 .stat-label{font-size:11px;color:#888;margin-bottom:4px;}
 .stat-value{font-size:22px;font-weight:600;}
@@ -36,18 +36,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .calls{display:flex;flex-direction:column;gap:8px;}
 .call-card{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;overflow:hidden;}
 .call-card.unreviewed{border-left:3px solid #dc2626;}
-.call-card.emergency .call-hd{background:#fff1f2;}
 .call-hd{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;}
 .call-hd:hover{background:#fafaf8;}
 .call-name{font-size:14px;font-weight:600;flex-shrink:0;}
 .call-phone{font-size:12px;color:#888;white-space:nowrap;}
 .call-summary{flex:1;min-width:0;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600;white-space:nowrap;flex-shrink:0;}
-.badge-repair{background:#fee2e2;color:#dc2626;}
-.badge-sales{background:#dbeafe;color:#2563eb;}
-.badge-install{background:#dcfce7;color:#16a34a;}
-.badge-other{background:#f4f4f0;color:#888;}
-.badge-emergency{background:#dc2626;color:#fff;}
+.badge-new{background:#dbeafe;color:#2563eb;}
 .call-time{font-size:11px;color:#aaa;white-space:nowrap;flex-shrink:0;}
 .chevron{font-size:12px;color:#bbb;transition:transform .15s;flex-shrink:0;}
 .chevron.open{transform:rotate(90deg);}
@@ -74,10 +69,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .staff-input{font-size:13px;padding:6px 10px;border:0.5px solid #ddd;border-radius:7px;font-family:inherit;background:#f9f9f7;}
 .staff-name-input{flex:1;min-width:140px;}
 .staff-phone-input{width:150px;}
-.role-checks{display:flex;gap:6px;flex-wrap:wrap;}
-.role-chip{font-size:11px;padding:4px 9px;border-radius:6px;border:0.5px solid #ddd;background:#fff;cursor:pointer;color:#888;user-select:none;}
-.role-chip.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
-.staff-actions{display:flex;gap:6px;flex-shrink:0;}
+.staff-actions{display:flex;gap:6px;flex-shrink:0;margin-left:auto;}
 .btn-test{font-size:11px;padding:4px 10px;border:0.5px solid #888;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-family:inherit;}
 .btn-del{font-size:11px;padding:4px 10px;border:0.5px solid #fca5a5;border-radius:6px;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit;}
 .add-staff-btn{width:100%;padding:10px;background:#fff;border:0.5px dashed #ccc;border-radius:12px;color:#888;cursor:pointer;font-size:13px;font-family:inherit;}
@@ -87,7 +79,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
 @media(max-width:700px){
-  .stats{grid-template-columns:1fr 1fr;}
+  .stats{grid-template-columns:1fr 1fr;max-width:none;}
   .call-phone,.call-time{display:none;}
   .main{padding:1rem 0.75rem;}
 }
@@ -113,9 +105,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="stats">
       <div class="stat"><div class="stat-label">Calls today</div><div class="stat-value" id="s-today">0</div></div>
       <div class="stat"><div class="stat-label">Unreviewed</div><div class="stat-value" id="s-unreviewed" style="color:#dc2626">0</div></div>
-      <div class="stat"><div class="stat-label">Repair</div><div class="stat-value" id="s-repair" style="color:#dc2626">0</div></div>
-      <div class="stat"><div class="stat-label">Sales</div><div class="stat-value" id="s-sales" style="color:#2563eb">0</div></div>
-      <div class="stat"><div class="stat-label">Install</div><div class="stat-value" id="s-install" style="color:#16a34a">0</div></div>
     </div>
     <div class="view-toggle">
       <button class="vbtn active" id="btn-calls" onclick="setView('calls')">&#128222; Calls</button>
@@ -126,10 +115,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="filter-bar">
         <button class="fbtn active" data-f="all" onclick="setFilter('all')">All</button>
         <button class="fbtn" data-f="unreviewed" onclick="setFilter('unreviewed')">Unreviewed</button>
-        <button class="fbtn" data-f="repair" onclick="setFilter('repair')">Repair</button>
-        <button class="fbtn" data-f="sales" onclick="setFilter('sales')">Sales</button>
-        <button class="fbtn" data-f="install" onclick="setFilter('install')">Install</button>
-        <button class="fbtn" data-f="other" onclick="setFilter('other')">Other</button>
         <button class="btn-sm" style="margin-left:auto" onclick="loadCalls()">&#8635; Refresh</button>
       </div>
       <div class="calls" id="calls-list"><div class="empty">Loading calls&hellip;</div></div>
@@ -137,8 +122,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <div id="view-staff" style="display:none">
       <div class="webhook-box">
-        <strong>Webhook URL for Housecall Pro CSR AI:</strong><br>
-        Paste this into CSR AI Settings &rarr; wherever HCP asks for a webhook/callback URL:<br>
+        <strong>Webhook URL (Housecall Pro &rarr; My Apps &rarr; Webhooks app):</strong><br>
         <code id="webhook-url-display">https://hpgwwegjsxyxovdattoc.supabase.co/functions/v1/swift-calls</code>
       </div>
       <div class="staff-list" id="staff-list"></div>
@@ -152,7 +136,6 @@ var SUPABASE_URL = 'https://hpgwwegjsxyxovdattoc.supabase.co';
 var SUPABASE_KEY = 'sb_publishable_D2PqYQoJjZ8koEM9NPvmeg_KB_Wa66H';
 var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 var EDGE_FN = SUPABASE_URL + '/functions/v1/swift-calls';
-var ROLE_OPTIONS = ['repair','sales','install','emergency','all'];
 
 var currentUser = null, users = [];
 var calls = [], staff = [];
@@ -237,34 +220,24 @@ function updateStats() {
   var todays = calls.filter(function(c){ return new Date(c.call_time).toDateString()===today; });
   document.getElementById('s-today').textContent = todays.length;
   document.getElementById('s-unreviewed').textContent = calls.filter(function(c){ return !c.reviewed; }).length;
-  document.getElementById('s-repair').textContent = calls.filter(function(c){ return c.call_type==='repair'; }).length;
-  document.getElementById('s-sales').textContent = calls.filter(function(c){ return c.call_type==='sales'; }).length;
-  document.getElementById('s-install').textContent = calls.filter(function(c){ return c.call_type==='install'; }).length;
 }
 function renderCalls() {
   var el = document.getElementById('calls-list');
   var list = calls.filter(function(c){
     if (currentFilter==='all') return true;
-    if (currentFilter==='unreviewed') return !c.reviewed;
-    return c.call_type===currentFilter;
+    return !c.reviewed;
   });
   if (!list.length) { el.innerHTML = '<div class="empty">No calls to show.</div>'; return; }
   el.innerHTML = list.map(renderCallCard).join('');
 }
-function badgeFor(type) {
-  var map = {repair:'badge-repair',sales:'badge-sales',install:'badge-install',other:'badge-other'};
-  return '<span class="badge '+(map[type]||'badge-other')+'">'+ (type||'other').toUpperCase() +'</span>';
-}
 function renderCallCard(c) {
   var isOpen = openCallIds.has(c.id);
-  var isEmergency = c.urgency === 'emergency';
   var time = new Date(c.call_time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
-  var html = '<div class="call-card'+(c.reviewed?'':' unreviewed')+(isEmergency?' emergency':'')+'" id="call-'+c.id+'">';
+  var html = '<div class="call-card'+(c.reviewed?'':' unreviewed')+'" id="call-'+c.id+'">';
   html += '<div class="call-hd" onclick="toggleCall(\''+c.id+'\')">';
   html += '<span class="call-name">'+esc(c.customer_name||'Unknown')+'</span>';
   html += '<span class="call-phone">'+esc(c.customer_phone||'')+'</span>';
-  if (isEmergency) html += '<span class="badge badge-emergency">URGENT</span>';
-  html += badgeFor(c.call_type);
+  if (!c.reviewed) html += '<span class="badge badge-new">NEW</span>';
   html += '<span class="call-summary">'+esc(c.summary||'')+'</span>';
   html += '<span class="call-time">'+time+'</span>';
   html += '<span class="chevron'+(isOpen?' open':'')+'">&#9658;</span>';
@@ -278,24 +251,17 @@ function renderCallCard(c) {
   html += '<div class="detail-row"><div class="detail-label">Sent to</div>';
   if (!alerted.length) { html += '<span style="font-size:12px;color:#aaa">Nobody has been texted about this call yet.</span>'; }
   else {
-    // newest first, so the most recent manual send is easy to spot
+    // newest first, so the most recent send is easy to spot
     var sorted = alerted.slice().sort(function(a,b){ return new Date(b.sent_at)-new Date(a.sent_at); });
     html += '<div class="alerted-list">' + sorted.map(function(a){
       var sentTime = a.sent_at ? new Date(a.sent_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) : '';
-      var who = a.trigger === 'manual' ? 'sent by ' + esc(a.sent_by||'someone') : 'auto-alert';
+      var who = 'sent by ' + esc(a.sent_by||'someone');
       return '<div class="alerted-item"><span class="'+(a.status==='sent'?'alert-ok':'alert-fail')+'">'+(a.status==='sent'?'&#10003;':'&#10007;')+'</span>'
         + esc(a.name)+' ('+esc(a.phone)+') &mdash; '+who+(sentTime?' &mdash; '+sentTime:'')+(a.error?' — '+esc(a.error):'')+'</div>';
     }).join('') + '</div>';
   }
   html += '</div>';
   html += '<div class="action-row">';
-  html += '<select id="type-select-'+c.id+'">';
-  ['repair','sales','install','other'].forEach(function(t){
-    html += '<option value="'+t+'"'+(c.call_type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';
-  });
-  html += '</select>';
-  html += '<button class="btn-sm" onclick="reclassify(\''+c.id+'\',false)">Save type</button>';
-  html += '<button class="btn-sm" onclick="reclassify(\''+c.id+'\',true)">Save &amp; resend alert</button>';
   html += '<button class="btn-review'+(c.reviewed?' done':'')+'" onclick="toggleReviewed(\''+c.id+'\','+(!c.reviewed)+')">'+(c.reviewed?'&#10003; Reviewed':'Mark reviewed')+'</button>';
   html += '</div>';
   html += '<div class="action-row">';
@@ -322,17 +288,6 @@ async function toggleReviewed(id, reviewed) {
     var c = calls.find(function(x){ return x.id===id; });
     if (c) { c.reviewed = reviewed; }
     updateStats(); renderCalls();
-  } catch(e) { showToast('Error: '+e.message); }
-}
-async function reclassify(id, resend) {
-  var sel = document.getElementById('type-select-'+id);
-  var newType = sel.value;
-  try {
-    var data = await callFn({action:'reclassify_resend', id:id, call_type:newType, resend:resend});
-    var c = calls.find(function(x){ return x.id===id; });
-    if (c) { c.call_type = newType; if (resend) c.alerted_staff = data.alerted_staff; }
-    updateStats(); renderCalls();
-    showToast(resend ? 'Updated and re-alerted staff.' : 'Call type updated.');
   } catch(e) { showToast('Error: '+e.message); }
 }
 async function manualSend(id) {
@@ -365,12 +320,6 @@ function renderStaffRow(s) {
   var html = '<div class="staff-row" data-key="'+key+'">';
   html += '<input class="staff-input staff-name-input" placeholder="Name" value="'+esc(s.name||'')+'" onchange="updateStaffField(\''+key+'\',\'name\',this.value)">';
   html += '<input class="staff-input staff-phone-input" placeholder="+1 555 123 4567" value="'+esc(s.phone||'')+'" onchange="updateStaffField(\''+key+'\',\'phone\',this.value)">';
-  html += '<div class="role-checks">';
-  ROLE_OPTIONS.forEach(function(r){
-    var on = (s.roles||[]).includes(r);
-    html += '<span class="role-chip'+(on?' on':'')+'" onclick="toggleRole(\''+key+'\',\''+r+'\')">'+r+'</span>';
-  });
-  html += '</div>';
   html += '<div class="staff-actions">';
   html += '<button class="btn-test" onclick="testAlert(\''+key+'\')">Test text</button>';
   html += '<button class="btn-del" onclick="deleteStaff(\''+key+'\')">Remove</button>';
@@ -378,7 +327,7 @@ function renderStaffRow(s) {
   return html;
 }
 function addStaffRow() {
-  staff.push({id:null, name:'', phone:'', roles:[], active:true, _new:true});
+  staff.push({id:null, name:'', phone:'', active:true, _new:true});
   renderStaff();
 }
 async function saveStaffRow(s) {
@@ -396,14 +345,6 @@ function updateStaffField(key, field, value) {
   if (!s) return;
   s[field] = value;
   if (s.name && s.phone) saveStaffRow(s);
-}
-function toggleRole(key, role) {
-  var s = staff.find(function(x){ return x._key===key; });
-  if (!s) return;
-  s.roles = s.roles || [];
-  var idx = s.roles.indexOf(role);
-  if (idx>-1) s.roles.splice(idx,1); else s.roles.push(role);
-  if (s.name && s.phone) saveStaffRow(s); else renderStaff();
 }
 async function deleteStaff(key) {
   var s = staff.find(function(x){ return x._key===key; });
