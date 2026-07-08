@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAGeo Call Alerts</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f4f0;color:#1a1a1a;min-height:100vh;}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.login-card{background:#fff;border-radius:16px;border:0.5px solid #ddd;padding:2rem;width:340px;max-width:90vw;text-align:center;}
+.login-logo{font-size:22px;font-weight:600;margin-bottom:4px;}.login-logo span{color:#dc2626;}
+.login-sub{font-size:13px;color:#888;margin-bottom:2rem;}
+.pin-input{width:100%;padding:10px 14px;border:0.5px solid #ddd;border-radius:8px;font-size:16px;text-align:center;letter-spacing:6px;background:#f9f9f7;margin-bottom:1rem;box-sizing:border-box;}
+.pin-input:focus{outline:none;border-color:#dc2626;}
+.login-btn{width:100%;padding:11px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;}
+.login-btn:hover{background:#b91c1c;}
+.login-error{font-size:12px;color:#dc2626;margin-top:8px;}
+#app{display:none;}
+.topbar{background:#fff;border-bottom:0.5px solid #e5e5e5;padding:0 1.5rem;display:flex;align-items:center;gap:1rem;height:52px;position:sticky;top:0;z-index:100;}
+.topbar-logo{font-size:15px;font-weight:600;flex:1;}.topbar-logo span{color:#dc2626;}
+.topbar-user{font-size:12px;color:#888;}.topbar-user strong{color:#1a1a1a;}
+.logout-btn{font-size:12px;padding:4px 10px;border:0.5px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#888;}
+.main{max-width:1100px;margin:0 auto;padding:1.5rem;}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem;}
+.stat{background:#fff;border-radius:10px;border:0.5px solid #e5e5e5;padding:12px 14px;}
+.stat-label{font-size:11px;color:#888;margin-bottom:4px;}
+.stat-value{font-size:22px;font-weight:600;}
+.view-toggle{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;}
+.vbtn{padding:6px 14px;font-size:13px;border-radius:8px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+.vbtn.active{background:#f4f4f0;color:#1a1a1a;font-weight:500;border-color:#bbb;}
+.filter-bar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center;}
+.fbtn{padding:5px 12px;font-size:12px;border-radius:7px;border:0.5px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+.fbtn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+.calls{display:flex;flex-direction:column;gap:8px;}
+.call-card{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;overflow:hidden;}
+.call-card.unreviewed{border-left:3px solid #dc2626;}
+.call-card.emergency .call-hd{background:#fff1f2;}
+.call-hd{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;}
+.call-hd:hover{background:#fafaf8;}
+.call-name{font-size:14px;font-weight:600;flex-shrink:0;}
+.call-phone{font-size:12px;color:#888;white-space:nowrap;}
+.call-summary{flex:1;min-width:0;font-size:12px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600;white-space:nowrap;flex-shrink:0;}
+.badge-repair{background:#fee2e2;color:#dc2626;}
+.badge-sales{background:#dbeafe;color:#2563eb;}
+.badge-install{background:#dcfce7;color:#16a34a;}
+.badge-other{background:#f4f4f0;color:#888;}
+.badge-emergency{background:#dc2626;color:#fff;}
+.call-time{font-size:11px;color:#aaa;white-space:nowrap;flex-shrink:0;}
+.chevron{font-size:12px;color:#bbb;transition:transform .15s;flex-shrink:0;}
+.chevron.open{transform:rotate(90deg);}
+.call-body{display:none;border-top:0.5px solid #f0f0f0;padding:14px 16px;}
+.call-body.open{display:block;}
+.detail-row{margin-bottom:10px;font-size:13px;}
+.detail-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+.transcript-box{background:#f9f9f7;border:0.5px solid #eee;border-radius:8px;padding:10px 12px;font-size:12px;color:#555;max-height:180px;overflow-y:auto;white-space:pre-wrap;}
+.alerted-list{display:flex;flex-direction:column;gap:4px;}
+.alerted-item{font-size:12px;display:flex;gap:8px;align-items:center;}
+.alert-ok{color:#16a34a;}.alert-fail{color:#dc2626;}
+.action-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;}
+.action-row select{font-size:12px;padding:5px 8px;border:0.5px solid #ddd;border-radius:6px;font-family:inherit;}
+.btn-sm{font-size:12px;padding:5px 12px;border:0.5px solid #2563eb;border-radius:7px;background:#fff;color:#2563eb;cursor:pointer;font-family:inherit;}
+.btn-sm:hover{background:#eff6ff;}
+.btn-review{font-size:12px;padding:5px 12px;border:0.5px solid #16a34a;border-radius:7px;background:#fff;color:#16a34a;cursor:pointer;font-family:inherit;}
+.btn-review.done{background:#dcfce7;}
+.recording-link{font-size:12px;color:#2563eb;text-decoration:none;}
+.recording-link:hover{text-decoration:underline;}
+.empty{padding:2.5rem;text-align:center;color:#aaa;font-size:13px;}
+/* Staff view */
+.staff-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;}
+.staff-row{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+.staff-input{font-size:13px;padding:6px 10px;border:0.5px solid #ddd;border-radius:7px;font-family:inherit;background:#f9f9f7;}
+.staff-name-input{flex:1;min-width:140px;}
+.staff-phone-input{width:150px;}
+.role-checks{display:flex;gap:6px;flex-wrap:wrap;}
+.role-chip{font-size:11px;padding:4px 9px;border-radius:6px;border:0.5px solid #ddd;background:#fff;cursor:pointer;color:#888;user-select:none;}
+.role-chip.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+.staff-actions{display:flex;gap:6px;flex-shrink:0;}
+.btn-test{font-size:11px;padding:4px 10px;border:0.5px solid #888;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-family:inherit;}
+.btn-del{font-size:11px;padding:4px 10px;border:0.5px solid #fca5a5;border-radius:6px;background:#fff;color:#dc2626;cursor:pointer;font-family:inherit;}
+.add-staff-btn{width:100%;padding:10px;background:#fff;border:0.5px dashed #ccc;border-radius:12px;color:#888;cursor:pointer;font-size:13px;font-family:inherit;}
+.add-staff-btn:hover{background:#f4f4f0;color:#1a1a1a;}
+.webhook-box{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;padding:14px 16px;margin-bottom:1rem;font-size:12px;color:#555;}
+.webhook-box code{background:#f4f4f0;padding:2px 6px;border-radius:5px;font-size:11px;word-break:break-all;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1a1a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;}
+.toast.show{opacity:1;}
+@media(max-width:700px){
+  .stats{grid-template-columns:1fr 1fr;}
+  .call-phone,.call-time{display:none;}
+  .main{padding:1rem 0.75rem;}
+}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">NAGeo <span>Call Alerts</span></div>
+    <div class="login-sub">Enter your PIN to continue</div>
+    <input type="password" class="pin-input" id="pin-input" placeholder="PIN" maxlength="6" inputmode="numeric">
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">NAGeo <span>Call Alerts</span></div>
+    <div class="topbar-user">Signed in as <strong id="topbar-name"></strong></div>
+    <button class="logout-btn" onclick="doLogout()">Sign out</button>
+  </div>
+  <div class="main">
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Calls today</div><div class="stat-value" id="s-today">0</div></div>
+      <div class="stat"><div class="stat-label">Unreviewed</div><div class="stat-value" id="s-unreviewed" style="color:#dc2626">0</div></div>
+      <div class="stat"><div class="stat-label">Repair</div><div class="stat-value" id="s-repair" style="color:#dc2626">0</div></div>
+      <div class="stat"><div class="stat-label">Sales</div><div class="stat-value" id="s-sales" style="color:#2563eb">0</div></div>
+      <div class="stat"><div class="stat-label">Install</div><div class="stat-value" id="s-install" style="color:#16a34a">0</div></div>
+    </div>
+    <div class="view-toggle">
+      <button class="vbtn active" id="btn-calls" onclick="setView('calls')">&#128222; Calls</button>
+      <button class="vbtn" id="btn-staff" onclick="setView('staff')">&#128101; Staff &amp; Routing</button>
+    </div>
+
+    <div id="view-calls">
+      <div class="filter-bar">
+        <button class="fbtn active" data-f="all" onclick="setFilter('all')">All</button>
+        <button class="fbtn" data-f="unreviewed" onclick="setFilter('unreviewed')">Unreviewed</button>
+        <button class="fbtn" data-f="repair" onclick="setFilter('repair')">Repair</button>
+        <button class="fbtn" data-f="sales" onclick="setFilter('sales')">Sales</button>
+        <button class="fbtn" data-f="install" onclick="setFilter('install')">Install</button>
+        <button class="fbtn" data-f="other" onclick="setFilter('other')">Other</button>
+        <button class="btn-sm" style="margin-left:auto" onclick="loadCalls()">&#8635; Refresh</button>
+      </div>
+      <div class="calls" id="calls-list"><div class="empty">Loading calls&hellip;</div></div>
+    </div>
+
+    <div id="view-staff" style="display:none">
+      <div class="webhook-box">
+        <strong>Webhook URL for Housecall Pro CSR AI:</strong><br>
+        Paste this into CSR AI Settings &rarr; wherever HCP asks for a webhook/callback URL:<br>
+        <code id="webhook-url-display">https://hpgwwegjsxyxovdattoc.supabase.co/functions/v1/swift-calls</code>
+      </div>
+      <div class="staff-list" id="staff-list"></div>
+      <button class="add-staff-btn" onclick="addStaffRow()">+ Add person</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var SUPABASE_URL = 'https://hpgwwegjsxyxovdattoc.supabase.co';
+var SUPABASE_KEY = 'sb_publishable_D2PqYQoJjZ8koEM9NPvmeg_KB_Wa66H';
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var EDGE_FN = SUPABASE_URL + '/functions/v1/swift-calls';
+var ROLE_OPTIONS = ['repair','sales','install','emergency','all'];
+
+var currentUser = null, users = [];
+var calls = [], staff = [];
+var currentView = 'calls', currentFilter = 'all';
+var openCallIds = new Set();
+
+async function init() {
+  var saved = localStorage.getItem('nageo_calls_user');
+  if (saved) { currentUser = JSON.parse(saved); showApp(); }
+  else {
+    var res = await sb.from('users').select('*').order('name');
+    users = res.data || [];
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+}
+function doLogin() {
+  var pin = document.getElementById('pin-input').value.trim();
+  if (!pin) { document.getElementById('login-error').textContent = 'Enter your PIN.'; return; }
+  var user = users.find(function(u){ return String(u.pin) === pin; });
+  if (!user) { document.getElementById('login-error').textContent = 'PIN not recognized.'; document.getElementById('pin-input').value=''; return; }
+  currentUser = user;
+  localStorage.setItem('nageo_calls_user', JSON.stringify(user));
+  showApp();
+}
+document.addEventListener('keydown', function(e){
+  var ls = document.getElementById('login-screen');
+  if (e.key==='Enter' && ls && ls.style.display!=='none') doLogin();
+});
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('nageo_calls_user');
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+function showApp() {
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('topbar-name').textContent = currentUser.name;
+  loadCalls();
+  loadStaff();
+  setInterval(loadCalls, 30000); // light auto-refresh so new calls show up without a manual click
+}
+function setView(v) {
+  currentView = v;
+  document.getElementById('view-calls').style.display = v==='calls' ? 'block' : 'none';
+  document.getElementById('view-staff').style.display = v==='staff' ? 'block' : 'none';
+  document.getElementById('btn-calls').className = 'vbtn' + (v==='calls'?' active':'');
+  document.getElementById('btn-staff').className = 'vbtn' + (v==='staff'?' active':'');
+}
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.fbtn').forEach(function(b){ b.className = 'fbtn' + (b.dataset.f===f?' active':''); });
+  renderCalls();
+}
+async function callFn(payload) {
+  var res = await fetch(EDGE_FN, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_KEY,'apikey':SUPABASE_KEY},
+    body:JSON.stringify(payload)
+  });
+  var data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+async function loadCalls() {
+  try {
+    var data = await callFn({action:'list', limit:300});
+    calls = data.calls || [];
+    updateStats();
+    renderCalls();
+  } catch(e) { showToast('Error loading calls: '+e.message); }
+}
+async function loadStaff() {
+  try {
+    var data = await callFn({action:'staff_list'});
+    staff = data.staff || [];
+    renderStaff();
+  } catch(e) { showToast('Error loading staff: '+e.message); }
+}
+function updateStats() {
+  var today = new Date().toDateString();
+  var todays = calls.filter(function(c){ return new Date(c.call_time).toDateString()===today; });
+  document.getElementById('s-today').textContent = todays.length;
+  document.getElementById('s-unreviewed').textContent = calls.filter(function(c){ return !c.reviewed; }).length;
+  document.getElementById('s-repair').textContent = calls.filter(function(c){ return c.call_type==='repair'; }).length;
+  document.getElementById('s-sales').textContent = calls.filter(function(c){ return c.call_type==='sales'; }).length;
+  document.getElementById('s-install').textContent = calls.filter(function(c){ return c.call_type==='install'; }).length;
+}
+function renderCalls() {
+  var el = document.getElementById('calls-list');
+  var list = calls.filter(function(c){
+    if (currentFilter==='all') return true;
+    if (currentFilter==='unreviewed') return !c.reviewed;
+    return c.call_type===currentFilter;
+  });
+  if (!list.length) { el.innerHTML = '<div class="empty">No calls to show.</div>'; return; }
+  el.innerHTML = list.map(renderCallCard).join('');
+}
+function badgeFor(type) {
+  var map = {repair:'badge-repair',sales:'badge-sales',install:'badge-install',other:'badge-other'};
+  return '<span class="badge '+(map[type]||'badge-other')+'">'+ (type||'other').toUpperCase() +'</span>';
+}
+function renderCallCard(c) {
+  var isOpen = openCallIds.has(c.id);
+  var isEmergency = c.urgency === 'emergency';
+  var time = new Date(c.call_time).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
+  var html = '<div class="call-card'+(c.reviewed?'':' unreviewed')+(isEmergency?' emergency':'')+'" id="call-'+c.id+'">';
+  html += '<div class="call-hd" onclick="toggleCall(\''+c.id+'\')">';
+  html += '<span class="call-name">'+esc(c.customer_name||'Unknown')+'</span>';
+  html += '<span class="call-phone">'+esc(c.customer_phone||'')+'</span>';
+  if (isEmergency) html += '<span class="badge badge-emergency">URGENT</span>';
+  html += badgeFor(c.call_type);
+  html += '<span class="call-summary">'+esc(c.summary||'')+'</span>';
+  html += '<span class="call-time">'+time+'</span>';
+  html += '<span class="chevron'+(isOpen?' open':'')+'">&#9658;</span>';
+  html += '</div>';
+  html += '<div class="call-body'+(isOpen?' open':'')+'">';
+  if (c.customer_address) html += '<div class="detail-row"><div class="detail-label">Address</div>'+esc(c.customer_address)+'</div>';
+  if (c.summary) html += '<div class="detail-row"><div class="detail-label">Summary</div>'+esc(c.summary)+'</div>';
+  if (c.transcript) html += '<div class="detail-row"><div class="detail-label">Transcript</div><div class="transcript-box">'+esc(c.transcript)+'</div></div>';
+  if (c.recording_url) html += '<div class="detail-row"><div class="detail-label">Recording</div><a class="recording-link" href="'+esc(c.recording_url)+'" target="_blank">&#9654; Listen</a></div>';
+  var alerted = c.alerted_staff || [];
+  html += '<div class="detail-row"><div class="detail-label">Sent to</div>';
+  if (!alerted.length) { html += '<span style="font-size:12px;color:#aaa">Nobody has been texted about this call yet.</span>'; }
+  else {
+    // newest first, so the most recent manual send is easy to spot
+    var sorted = alerted.slice().sort(function(a,b){ return new Date(b.sent_at)-new Date(a.sent_at); });
+    html += '<div class="alerted-list">' + sorted.map(function(a){
+      var sentTime = a.sent_at ? new Date(a.sent_at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}) : '';
+      var who = a.trigger === 'manual' ? 'sent by ' + esc(a.sent_by||'someone') : 'auto-alert';
+      return '<div class="alerted-item"><span class="'+(a.status==='sent'?'alert-ok':'alert-fail')+'">'+(a.status==='sent'?'&#10003;':'&#10007;')+'</span>'
+        + esc(a.name)+' ('+esc(a.phone)+') &mdash; '+who+(sentTime?' &mdash; '+sentTime:'')+(a.error?' — '+esc(a.error):'')+'</div>';
+    }).join('') + '</div>';
+  }
+  html += '</div>';
+  html += '<div class="action-row">';
+  html += '<select id="type-select-'+c.id+'">';
+  ['repair','sales','install','other'].forEach(function(t){
+    html += '<option value="'+t+'"'+(c.call_type===t?' selected':'')+'>'+t.charAt(0).toUpperCase()+t.slice(1)+'</option>';
+  });
+  html += '</select>';
+  html += '<button class="btn-sm" onclick="reclassify(\''+c.id+'\',false)">Save type</button>';
+  html += '<button class="btn-sm" onclick="reclassify(\''+c.id+'\',true)">Save &amp; resend alert</button>';
+  html += '<button class="btn-review'+(c.reviewed?' done':'')+'" onclick="toggleReviewed(\''+c.id+'\','+(!c.reviewed)+')">'+(c.reviewed?'&#10003; Reviewed':'Mark reviewed')+'</button>';
+  html += '</div>';
+  html += '<div class="action-row">';
+  html += '<select id="send-select-'+c.id+'">';
+  if (!staff.length) { html += '<option value="">No staff added yet</option>'; }
+  else {
+    staff.filter(function(s){ return s.active !== false && s.id; }).forEach(function(s){
+      html += '<option value="'+s.id+'">'+esc(s.name)+' — '+esc(s.phone)+'</option>';
+    });
+  }
+  html += '</select>';
+  html += '<button class="btn-sm" style="border-color:#16a34a;color:#16a34a" onclick="manualSend(\''+c.id+'\')">&#9993; Send this call to them</button>';
+  html += '</div>';
+  html += '</div></div>';
+  return html;
+}
+function toggleCall(id) {
+  if (openCallIds.has(id)) openCallIds.delete(id); else openCallIds.add(id);
+  renderCalls();
+}
+async function toggleReviewed(id, reviewed) {
+  try {
+    await callFn({action:'mark_reviewed', id:id, reviewed:reviewed, reviewed_by:currentUser.name});
+    var c = calls.find(function(x){ return x.id===id; });
+    if (c) { c.reviewed = reviewed; }
+    updateStats(); renderCalls();
+  } catch(e) { showToast('Error: '+e.message); }
+}
+async function reclassify(id, resend) {
+  var sel = document.getElementById('type-select-'+id);
+  var newType = sel.value;
+  try {
+    var data = await callFn({action:'reclassify_resend', id:id, call_type:newType, resend:resend});
+    var c = calls.find(function(x){ return x.id===id; });
+    if (c) { c.call_type = newType; if (resend) c.alerted_staff = data.alerted_staff; }
+    updateStats(); renderCalls();
+    showToast(resend ? 'Updated and re-alerted staff.' : 'Call type updated.');
+  } catch(e) { showToast('Error: '+e.message); }
+}
+async function manualSend(id) {
+  var sel = document.getElementById('send-select-'+id);
+  var staffId = sel.value;
+  if (!staffId) { showToast('Add someone in Staff & Routing first.'); return; }
+  var picked = staff.find(function(s){ return s.id===staffId; });
+  try {
+    var data = await callFn({action:'manual_send', id:id, staff_id:staffId, sent_by:currentUser.name});
+    var c = calls.find(function(x){ return x.id===id; });
+    if (c) c.alerted_staff = data.alerted_staff;
+    renderCalls();
+    showToast(data.ok ? ('Sent to '+(picked?picked.name:'them')+' — from '+currentUser.name+'.') : 'Send failed: '+(data.entry&&data.entry.error||'unknown error'));
+  } catch(e) { showToast('Error: '+e.message); }
+}
+/* ── Staff & routing ─────────────────────────────────────────────── */
+function renderStaff() {
+  var el = document.getElementById('staff-list');
+  if (!staff.length) { el.innerHTML = '<div class="empty">No staff added yet. Add people below so calls have someone to alert.</div>'; return; }
+  el.innerHTML = staff.map(renderStaffRow).join('');
+}
+// Every staff row gets a stable client-side _key (independent of the DB id,
+// which doesn't exist yet for a brand-new unsaved row). All DOM handlers key
+// off _key so "new row" lookups never depend on coercing null through a
+// string-built onclick attribute.
+var staffKeySeq = 0;
+function ensureKey(s) { if (!s._key) s._key = 'k' + (++staffKeySeq); return s._key; }
+function renderStaffRow(s) {
+  var key = ensureKey(s);
+  var html = '<div class="staff-row" data-key="'+key+'">';
+  html += '<input class="staff-input staff-name-input" placeholder="Name" value="'+esc(s.name||'')+'" onchange="updateStaffField(\''+key+'\',\'name\',this.value)">';
+  html += '<input class="staff-input staff-phone-input" placeholder="+1 555 123 4567" value="'+esc(s.phone||'')+'" onchange="updateStaffField(\''+key+'\',\'phone\',this.value)">';
+  html += '<div class="role-checks">';
+  ROLE_OPTIONS.forEach(function(r){
+    var on = (s.roles||[]).includes(r);
+    html += '<span class="role-chip'+(on?' on':'')+'" onclick="toggleRole(\''+key+'\',\''+r+'\')">'+r+'</span>';
+  });
+  html += '</div>';
+  html += '<div class="staff-actions">';
+  html += '<button class="btn-test" onclick="testAlert(\''+key+'\')">Test text</button>';
+  html += '<button class="btn-del" onclick="deleteStaff(\''+key+'\')">Remove</button>';
+  html += '</div></div>';
+  return html;
+}
+function addStaffRow() {
+  staff.push({id:null, name:'', phone:'', roles:[], active:true, _new:true});
+  renderStaff();
+}
+async function saveStaffRow(s) {
+  try {
+    var data = await callFn({action:'staff_save', staff:s});
+    var key = s._key;
+    Object.assign(s, data.staff);
+    s._key = key; // keep the same client key across the id being filled in
+    delete s._new;
+    renderStaff();
+  } catch(e) { showToast('Error saving: '+e.message); }
+}
+function updateStaffField(key, field, value) {
+  var s = staff.find(function(x){ return x._key===key; });
+  if (!s) return;
+  s[field] = value;
+  if (s.name && s.phone) saveStaffRow(s);
+}
+function toggleRole(key, role) {
+  var s = staff.find(function(x){ return x._key===key; });
+  if (!s) return;
+  s.roles = s.roles || [];
+  var idx = s.roles.indexOf(role);
+  if (idx>-1) s.roles.splice(idx,1); else s.roles.push(role);
+  if (s.name && s.phone) saveStaffRow(s); else renderStaff();
+}
+async function deleteStaff(key) {
+  var s = staff.find(function(x){ return x._key===key; });
+  if (!s) return;
+  if (!s.id) { staff = staff.filter(function(x){ return x._key!==key; }); renderStaff(); return; }
+  if (!confirm('Remove this person from call alert routing?')) return;
+  try {
+    await callFn({action:'staff_delete', id:s.id});
+    staff = staff.filter(function(x){ return x._key!==key; });
+    renderStaff();
+    showToast('Removed.');
+  } catch(e) { showToast('Error: '+e.message); }
+}
+async function testAlert(key) {
+  var s = staff.find(function(x){ return x._key===key; });
+  if (!s || !s.phone) { showToast('Add a phone number first.'); return; }
+  try {
+    await callFn({action:'test_sms', phone:s.phone, message:'Test alert from NAGeo Call Alerts — routing to '+s.name+' works.'});
+    showToast('Test text sent to '+s.name+'.');
+  } catch(e) { showToast('Error: '+e.message); }
+}
+/* ── Helpers ─────────────────────────────────────────────────────── */
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },3500); }
+init();
+</script>
+</body>
+</html>
