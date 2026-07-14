@@ -110,6 +110,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="topbar">
     <div class="topbar-logo">NAGeo <span>Team Texting</span></div>
     <div class="topbar-user">Signed in as <strong id="topbar-name"></strong></div>
+    <button class="logout-btn" id="notif-btn" onclick="enableNotifications()" style="display:none">&#128276; Enable notifications</button>
     <button class="logout-btn" onclick="doLogout()">Sign out</button>
   </div>
   <div class="main">
@@ -168,6 +169,9 @@ var threadMessages = [];
 var messagePollTimer = null;
 var pendingPhotoFile = null;
 
+var lastSeenInboundAt = null;
+var notifPollTimer = null;
+
 async function init() {
   var saved = localStorage.getItem('nageo_calls_user');
   if (saved) { currentUser = JSON.parse(saved); showApp(); }
@@ -196,6 +200,7 @@ function doLogout() {
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   if (messagePollTimer) { clearInterval(messagePollTimer); messagePollTimer = null; }
+  if (notifPollTimer) { clearInterval(notifPollTimer); notifPollTimer = null; }
 }
 function showApp() {
   document.getElementById('login-screen').style.display='none';
@@ -204,6 +209,7 @@ function showApp() {
   loadStaff();
   loadGroups();
   setView('messages');
+  initNotifications();
 }
 function setView(v) {
   currentView = v;
@@ -361,6 +367,71 @@ function nameForStaff(id) {
 function nameForGroup(id) {
   var g = groups.find(function(x){ return x.id===id; });
   return g ? g.name : 'Group';
+}
+/* ── Desktop notifications ───────────────────────────────────────── */
+// Uses the browser's native Notification API — on Mac this shows a real
+// system notification banner (Notification Center), not just something
+// inside the page, and keeps working as long as the browser is open (tab
+// can be backgrounded or in another Space; it does need the browser itself
+// running, and the tab not fully closed). Independent of whichever thread
+// the polling for the *open* thread already does — this one checks for new
+// replies from anyone, every 10s, regardless of what's on screen.
+function initNotifications() {
+  if (!('Notification' in window)) return; // unsupported browser — button stays hidden
+  updateNotifBtn();
+  if (Notification.permission === 'granted') startNotifPolling();
+}
+function updateNotifBtn() {
+  var btn = document.getElementById('notif-btn');
+  if (!btn || !('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    btn.style.display = 'none';
+  } else if (Notification.permission === 'denied') {
+    btn.style.display = 'inline-block';
+    btn.textContent = '🔔 Notifications blocked';
+    btn.disabled = true;
+  } else {
+    btn.style.display = 'inline-block';
+    btn.textContent = '🔔 Enable notifications';
+    btn.disabled = false;
+  }
+}
+function enableNotifications() {
+  if (!('Notification' in window)) { showToast("Notifications aren't supported in this browser."); return; }
+  Notification.requestPermission().then(function(perm) {
+    updateNotifBtn();
+    if (perm === 'granted') { showToast('Notifications enabled.'); startNotifPolling(); }
+    else if (perm === 'denied') { showToast('Notifications blocked — you can re-enable them in your browser or Mac System Settings > Notifications.'); }
+  });
+}
+function startNotifPolling() {
+  if (notifPollTimer) return;
+  lastSeenInboundAt = new Date().toISOString(); // only notify about replies from now on, not the whole history
+  notifPollTimer = setInterval(checkForNewReplies, 10000);
+}
+async function checkForNewReplies() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    var data = await callFn({action:'inbound_since', since: lastSeenInboundAt});
+    var msgs = data.messages || [];
+    if (!msgs.length) return;
+    msgs.forEach(function(m){
+      if (m.created_at > lastSeenInboundAt) lastSeenInboundAt = m.created_at;
+      // Skip popping a notification for a reply in the exact thread you're
+      // already looking at with the window focused — you can already see it.
+      var alreadyOnScreen = m.staff_id && m.staff_id === currentThreadStaff && currentView === 'messages' && document.hasFocus();
+      if (alreadyOnScreen) return;
+      var who = m.staff_id ? nameForStaff(m.staff_id) : (m.from_phone || 'Someone');
+      var bodyText = m.body || ((m.media_urls||[]).length ? 'Sent a photo' : 'New message');
+      var n = new Notification(who + ' replied', { body: bodyText });
+      n.onclick = function() {
+        window.focus();
+        if (m.staff_id) { setView('messages'); openThread(m.staff_id); }
+        n.close();
+      };
+    });
+    if (currentThreadStaff) loadMessages(); // refresh the open thread right away instead of waiting for its own poll
+  } catch(e) { /* silent — this runs in the background, don't toast-spam */ }
 }
 function onPhotoChosen(input) {
   if (!input.files || !input.files[0]) return;
